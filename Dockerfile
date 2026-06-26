@@ -5,7 +5,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 # Force IPv4 and switch to a faster ROS2 mirror (University of Maryland)
 RUN echo 'Acquire::ForceIPv4 "true";' > /etc/apt/apt.conf.d/99force-ipv4 && \
-    sed -i 's|http://packages.ros.org/ros2/ubuntu|http://mirrors.umd.edu/ros2/ubuntu|g' /etc/apt/sources.list.d/ros2.list
+    sed -i 's|http://packages.ros.org/ros2/ubuntu|http://mirror.umd.edu/packages.ros.org/ros2/ubuntu|g' /etc/apt/sources.list.d/*.list || true
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
