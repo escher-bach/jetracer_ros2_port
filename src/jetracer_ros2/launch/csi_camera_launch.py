@@ -1,7 +1,8 @@
 import os
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument
+from launch.actions import DeclareLaunchArgument, ExecuteProcess, RegisterEventHandler
+from launch.event_handlers import OnProcessExit
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 from launch_ros.parameter_descriptions import ParameterValue
@@ -92,11 +93,44 @@ def generate_launch_description():
         }]
     )
 
+    # 6. Producer pipeline command running via nsenter
+    # We delete the old socket first to avoid race conditions where the consumer connects to an old dead socket
+    producer_cmd = ExecuteProcess(
+        cmd=[
+            'nsenter', '-t', '1', '-m', '-u', '-n', '-i', 'sh', '-c',
+            ['rm -f ', socket_path, ' && gst-launch-1.0 nvarguscamerasrc sensor-id=0 ! '
+             "'video/x-raw(memory:NVMM), width=(int)1280, height=(int)720, format=(string)NV12, framerate=(fraction)30/1' ! "
+             'nvvidconv flip-method=0 ! '
+             "'video/x-raw(memory:NVMM), width=(int)680, height=(int)420, format=(string)RGBA' ! "
+             'nvvidconv ! '
+             "'video/x-raw, format=(string)RGBA' ! "
+             'queue leaky=downstream max-size-buffers=5 ! '
+             'shmsink socket-path=', socket_path, ' shm-size=40000000 wait-for-connection=false']
+        ],
+        output='screen'
+    )
+
+    # 7. Wait for the socket file to be recreated by the producer
+    wait_for_socket_cmd = ExecuteProcess(
+        cmd=['bash', '-c', ['sleep 1 && while [ ! -S ', socket_path, ' ]; do sleep 0.1; done']],
+        output='screen'
+    )
+
+    # 8. Start gscam_node only after the socket is ready
+    start_gscam_after_socket = RegisterEventHandler(
+        event_handler=OnProcessExit(
+            target_action=wait_for_socket_cmd,
+            on_exit=[gscam_node]
+        )
+    )
+
     return LaunchDescription([
         declare_cam_name,
         declare_frame_id,
         declare_camera_info_url,
         declare_socket_path,
         declare_jpeg_quality,
-        gscam_node
+        producer_cmd,
+        wait_for_socket_cmd,
+        start_gscam_after_socket
     ])
