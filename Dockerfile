@@ -3,6 +3,9 @@ FROM ros:humble-ros-base
 # Prevent interactive prompts during apt install
 ENV DEBIAN_FRONTEND=noninteractive
 
+# Use UMD (US) mirror for ROS2
+RUN sed -i --follow-symlinks 's|^URIs: .*|URIs: http://mirror.umd.edu/packages.ros.org/ros2/ubuntu/|g' /etc/apt/sources.list.d/ros2.sources
+
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
     curl \
