@@ -24,7 +24,7 @@ services:
       - /dev/ttyACM1:/dev/ttyACM1
       - /dev/input:/dev/input
     # Adjust the command to run your specific launch file
-    command: bash -c "ros2 launch jetracer_ros2 jetracer.launch.py"
+    #command: bash -c "ros2 launch jetracer_ros2 jetracer.launch.py"
 
   zenoh-bridge:
     image: eclipse/zenoh-bridge-ros2dds:latest
