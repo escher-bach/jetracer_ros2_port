@@ -5,7 +5,6 @@ This repository is a port of the original JetRacer's ROS 1 functionality to ROS 
 ## Instructions
 
 ### 1. Install Docker
-Install Docker on your system. Note that Ubuntu 18.04 is deprecated and cannot be used.
 ```bash
 sudo apt install docker
 ```
