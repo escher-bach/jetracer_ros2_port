@@ -25,6 +25,8 @@ services:
       - /dev/input:/dev/input
     # Adjust the command to run your specific launch file
     #command: bash -c "ros2 launch jetracer_ros2 jetracer.launch.py"
+    tty: true
+    stdin_open: true
 
   zenoh-bridge:
     image: eclipse/zenoh-bridge-ros2dds:latest
@@ -32,3 +34,4 @@ services:
     network_mode: "host"
     environment:
       - ROS_DOMAIN_ID=${ROS_DOMAIN_ID:-0}
+      - ROS_DISTRO=humble
