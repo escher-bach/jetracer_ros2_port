@@ -35,15 +35,19 @@ WORKDIR /ros2_ws
 # Clone sllidar_ros2
 RUN cd src && git clone https://github.com/Slamtec/sllidar_ros2.git
 
-# Copy jetracer_ros2
-COPY src/jetracer_ros2 src/jetracer_ros2
+# Copy ONLY package.xml first to cache the slow rosdep install step
+COPY src/jetracer_ros2/package.xml src/jetracer_ros2/package.xml
 
 # Initialize rosdep, update, and install dependencies
-# We use --from-path src to cover sllidar_ros2, jetracer_ros2, and any others.
-RUN apt-get update && \
+# The --fix-missing flag helps if Ubuntu ports mirrors flake out (403 errors)
+RUN apt-get update --fix-missing && \
     rosdep update && \
     rosdep install -i --from-path src --rosdistro humble -y && \
     rm -rf /var/lib/apt/lists/*
+
+# Now copy the rest of the source code
+# Any changes to code will start rebuilding from here, skipping the 10-minute rosdep step!
+COPY src/jetracer_ros2 src/jetracer_ros2
 
 # Build the workspace
 RUN /bin/bash -c "source /opt/ros/humble/setup.bash && colcon build --symlink-install"
