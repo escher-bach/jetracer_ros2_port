@@ -3,9 +3,10 @@ FROM ros:humble-ros-base
 # Prevent interactive prompts during apt install
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Force IPv4 and switch to a faster ROS2 mirror (University of Maryland)
+# Force IPv4 and completely overwrite the ROS2 apt source list with the UMD mirror
 RUN echo 'Acquire::ForceIPv4 "true";' > /etc/apt/apt.conf.d/99force-ipv4 && \
-    sed -i 's|http://packages.ros.org/ros2/ubuntu|http://mirror.umd.edu/packages.ros.org/ros2/ubuntu|g' /etc/apt/sources.list.d/*.list || true
+    rm -f /etc/apt/sources.list.d/ros2*.list && \
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] http://mirror.umd.edu/packages.ros.org/ros2/ubuntu jammy main" > /etc/apt/sources.list.d/ros2.list
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
