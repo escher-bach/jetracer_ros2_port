@@ -1,0 +1,34 @@
+version: '3.8'
+
+services:
+  jetracer:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: jetracer-ros2:latest
+    container_name: my_jetracer
+    network_mode: "host"
+    ipc: "host"
+    pid: "host"
+    privileged: true
+    security_opt:
+      - seccomp:unconfined
+    environment:
+      - ROS_DOMAIN_ID=${ROS_DOMAIN_ID:-0}
+    volumes:
+      - /tmp:/tmp
+      # Optional: Mount source code for active development instead of using the copied version
+      # - ./src:/ros2_ws/src
+    devices:
+      - /dev/ttyACM0:/dev/ttyACM0
+      - /dev/ttyACM1:/dev/ttyACM1
+      - /dev/input:/dev/input
+    # Adjust the command to run your specific launch file
+    command: bash -c "ros2 launch jetracer_ros2 jetracer.launch.py"
+
+  zenoh-bridge:
+    image: eclipse/zenoh-bridge-ros2dds:latest
+    container_name: my_jetracer_zenoh
+    network_mode: "host"
+    environment:
+      - ROS_DOMAIN_ID=${ROS_DOMAIN_ID:-0}

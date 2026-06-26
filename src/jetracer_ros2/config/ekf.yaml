@@ -1,0 +1,28 @@
+ekf_filter_node:
+  ros__parameters:
+    frequency: 30.0
+    two_d_mode: true
+    publish_tf: true
+
+    odom_frame: odom
+    base_link_frame: base_footprint
+    world_frame: odom
+
+    # Wheel odometry input - Fuse velocities instead of absolute position
+    odom0: /odom_raw
+    odom0_config: [false, false, false,  # X, Y, Z
+                   false, false, false,  # roll, pitch, yaw
+                   true,  false, false,  # vx, vy, vz
+                   false, false, true,   # vroll, vpitch, vyaw
+                   false, false, false]  # ax, ay, az
+    odom0_differential: false
+
+    # IMU input - Fuse absolute Yaw
+    imu0: /imu
+    imu0_config: [false, false, false,
+                  false, false, true,    # absolute yaw
+                  false, false, false,
+                  false, false, false,
+                  false, false, false]
+    imu0_differential: false
+    imu0_remove_gravitational_acceleration: true

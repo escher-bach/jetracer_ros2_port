@@ -1,0 +1,34 @@
+slam_toolbox:
+  ros__parameters:
+    # Frame and Topic Configuration
+    odom_frame: odom
+    map_frame: map
+    base_frame: base_footprint
+    scan_topic: /scan_filtered
+    mode: mapping
+
+    # Optimization and Graph Management (CRITICAL FOR CPU)
+    solver_plugin: solver_plugins::CeresSolver
+    ceres_linear_solver: SPARSE_NORMAL_CHOLESKY
+    ceres_preconditioner: SCHUR_JACOBI
+    ceres_trust_region_strategy: LEVENBERG_MARQUARDT
+    ceres_dogleg_type: TRADITIONAL_DOGLEG
+    ceres_loss_function: None
+
+    # Limit Node Insertion Rate (Reduces graph size for fast Ackermann robot)
+    minimum_travel_distance: 0.5
+    minimum_travel_heading: 0.5
+
+    # Scan Matching
+    use_scan_matching: true
+    use_scan_barycenter: true
+    minimum_time_interval: 0.5
+
+    # Tolerance and Timeouts
+    transform_timeout: 0.2
+    tf_buffer_duration: 30.
+
+    # Mapping Configuration
+    map_update_interval: 2.0
+    resolution: 0.05
+    max_laser_range: 8.0
