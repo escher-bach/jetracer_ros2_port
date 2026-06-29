@@ -1,57 +1,69 @@
 # JetRacer ROS 2 Port
 
-This repository is a port of the original JetRacer's ROS 1 functionality to ROS 2.
+ROS 2 (Humble) port of the JetRacer platform, running inside Docker on a Jetson Nano (JetPack 4.6). Covers motor control, IMU/EKF odometry, LiDAR-based SLAM, autonomous navigation (Nav2), and CSI camera streaming.
 
-## Instructions
+For remote visualisation, vision pipelines, and teleoperation, see the companion repository: **[jetracer_remote_machine](https://github.com/escher-bach/jetracer_remote_machine)**.
 
-### 1. Install Docker
-Install Docker on your system. Note that Ubuntu 18.04 is deprecated and cannot be used.
+---
+
+## Installation
+
+### 1. Prerequisites
+
 ```bash
-sudo apt install docker
-```
+# Docker
+sudo apt install docker.io
 
-### 2. Install GStreamer Plugins
-Install the GStreamer good, bad, and ugly plugins if they are not already installed:
-```bash
+# GStreamer (for the camera pipeline on the bare host)
 sudo apt install gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-plugins-ugly
 ```
 
-### 3. Clone the Repository
-Clone this repository to your local machine:
+### 2. Clone and build
+
 ```bash
 git clone https://github.com/escher-bach/jetracer_ros2_port.git
-```
-
-### 4. Build the Docker Image
-Navigate into the cloned repository and build the Docker image using Docker Compose:
-```bash
 cd jetracer_ros2_port
 docker compose build
-```
-*(Make sure to start your containers with `docker compose up -d` before trying to execute into them.)*
-
-### 5. Access the Container
-To open a shell inside the running container, open a new terminal and execute:
-```bash
-docker exec -it my_jetracer bash
 ```
 
 ---
 
-## Remote Machine Setup
+## Usage
 
-To view data remotely, you will need a remote machine running **Ubuntu 22.04 (Jammy)** with **ROS 2 Humble** installed.
+### Step 1 — Start the containers
 
-### Demonstration: Camera
+```bash
+docker compose up
+```
 
-1. **On the JetRacer (inside the Docker container):**
-   Launch the camera node:
-   ```bash
-   ros2 launch jetracer_ros2 csi_camera_launch.py
-   ```
+This starts `my_jetracer` (the ROS 2 stack) and `my_jetracer_zenoh` (the Zenoh bridge that exposes all topics over TCP to the remote machine).
 
-2. **On the Remote Machine:**
-   Run `rqt_image_view` to see the published camera image:
-   ```bash
-   ros2 run rqt_image_view rqt_image_view
-   ```
+### Step 2 — Launch the robot stack
+
+In a new terminal, exec into the container and start the full demo:
+
+```bash
+docker exec -it my_jetracer bash
+ros2 launch jetracer_ros2 camera_slam_nav_launch.py
+```
+
+### Step 3 — Connect the remote machine
+
+On the host laptop, follow the setup in [jetracer_remote_machine](https://github.com/escher-bach/jetracer_remote_machine) then connect:
+
+```bash
+zenoh-bridge-ros2dds -e tcp/<jetson-ip>:7447
+```
+
+---
+
+## Launch File Reference
+
+| Launch file | What it starts |
+|---|---|
+| `jetracer_launch.py` | `jetracer_node` + EKF + static TFs |
+| `slam_launch.py` | jetracer + LiDAR + laser filter + SLAM Toolbox |
+| `camera_slam_nav_launch.py` | SLAM + camera + Nav2 all-in-one *(primary demo)* |
+| `localization_launch.py` | Saved-map nav: map_server + AMCL + Nav2. Accepts `map:=` |
+| `nav_launch.py` | Nav2 stack only |
+| `csi_camera_launch.py` | Camera node reading from shared memory |

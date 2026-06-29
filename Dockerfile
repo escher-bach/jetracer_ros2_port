@@ -46,7 +46,6 @@ RUN apt-get update --fix-missing && \
     rm -rf /var/lib/apt/lists/*
 
 # Now copy the rest of the source code
-# Any changes to code will start rebuilding from here, skipping the 10-minute rosdep step!
 COPY src/jetracer_ros2 src/jetracer_ros2
 
 # Build the workspace
