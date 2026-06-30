@@ -35,3 +35,4 @@ services:
     environment:
       - ROS_DOMAIN_ID=${ROS_DOMAIN_ID:-0}
       - ROS_DISTRO=humble
+      - ZENOH_ROUTER_NAMESPACE=${ROBOT_NAMESPACE:-/bot1}
