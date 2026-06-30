@@ -8,21 +8,18 @@ For remote visualisation, vision pipelines, and teleoperation, see the companion
 
 ## Installation
 
-### 1. Prerequisites
-
-```bash
-# Docker
-sudo apt install docker.io
-
-# GStreamer (for the camera pipeline on the bare host)
-sudo apt install gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-plugins-ugly
-```
-
-### 2. Clone and build
-
+Clone the repository
 ```bash
 git clone https://github.com/escher-bach/jetracer_ros2_port.git
 cd jetracer_ros2_port
+```
+Install prerequisites by running the install script (Docker, Docker Compose)
+```bash
+chmod -x install.sh
+./install.sh
+```
+Build the Docker image
+```bash
 docker compose build
 ```
 
