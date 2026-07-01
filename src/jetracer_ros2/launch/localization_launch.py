@@ -15,7 +15,7 @@ def generate_launch_description():
     # ── Launch arguments ────────────────────────────────────────────────────
     map_arg = DeclareLaunchArgument(
         'map',
-        default_value=os.path.join(jetracer_dir, 'maps', 'my_map.yaml'),
+        default_value=os.path.join(jetracer_dir, 'maps', 'jetracer_map.yaml'),
         description='Full path to the saved map .yaml file')
 
     use_sim_time_arg = DeclareLaunchArgument(
