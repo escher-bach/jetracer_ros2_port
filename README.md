@@ -54,6 +54,18 @@ zenoh-bridge-ros2dds -e tcp/<jetson-ip>:7447
 
 ---
 
+## Multirobot Integration
+
+A namespace can be set in the `.env` file for multi-robot setups. This ensures that on the remote machine, every topic appears as `/<namespace>/topic_name`.
+
+For example, setting the namespace to `bot1` will cause the bot's topics to appear as:
+
+```bash
+/bot1/cmd_vel
+```
+
+---
+
 ## Launch File Reference
 
 | Launch file | What it starts |
