@@ -18,7 +18,7 @@ services:
     volumes:
       - /tmp:/tmp
       # Optional: Mount source code for active development instead of using the copied version
-      # - ./src:/ros2_ws/src
+      # - ./src/jetracer_ros2:/ros2_ws/src/jetracer_ros2
     devices:
       - /dev/ttyACM0:/dev/ttyACM0
       - /dev/ttyACM1:/dev/ttyACM1
