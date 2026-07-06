@@ -17,12 +17,14 @@ ekf_filter_node:
                    false, false, false]  # ax, ay, az
     odom0_differential: false
 
-    # IMU input - Fuse absolute Yaw
+    # IMU input - Fuse yaw differentially (as increments, like ROS 1's robot_pose_ekf)
+    # so an MCU yaw discontinuity is absorbed as one bad delta instead of yanking
+    # the whole odom-frame heading
     imu0: /imu
     imu0_config: [false, false, false,
-                  false, false, true,    # absolute yaw
+                  false, false, true,    # yaw
                   false, false, false,
                   false, false, false,
                   false, false, false]
-    imu0_differential: false
+    imu0_differential: true
     imu0_remove_gravitational_acceleration: true

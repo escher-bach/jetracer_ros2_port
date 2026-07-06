@@ -465,7 +465,7 @@ private:
                     }
                 }
                 
-                odom_msgs.twist.covariance = { 1e-9, 0, 0, 0, 0, 0, 
+                odom_msgs.twist.covariance = { 1e-3, 0, 0, 0, 0, 0,
                                                 0, 1e-3, 1e-9, 0, 0, 0, 
                                                 0, 0, 1e6, 0, 0, 0,
                                                 0, 0, 0, 1e6, 0, 0, 
