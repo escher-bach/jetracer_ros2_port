@@ -181,6 +181,11 @@ rtabmap:
                                  # the transform (no depth)
     Grid/Sensor: "0"             # grid from scan; default (1) expects a depth
                                  # camera we don't have
+    RGBD/LoopClosureIdentityGuess: "true"   # without depth, no node has 3D visual
+                                 # features, so the default visual transform-guess
+                                 # stage rejects EVERY closure with "Not enough
+                                 # features in images (old=0)"; identity guess
+                                 # sends closures straight to scan ICP
 
     # ---- (b) STANDARD: upstream 2D-lidar reference config (TurtleBot3 demo) ----
     Reg/Force3DoF: "true"                   # ground vehicle, 2D
@@ -195,9 +200,11 @@ rtabmap:
     Rtabmap/TimeThr: "700"       # ms; bounds map-update time by moving old nodes
                                  # WM->LTM (default 0 = unbounded, desktop-sized)
     Kp/MaxFeatures: "200"        # BoW features/image (default 500, desktop-sized)
-    Kp/DetectorStrategy: "6"     # GFTT+BRIEF: cheapest solid CPU descriptor
-                                 # (default GFTT+ORB costs more per frame)
 ```
+
+(`Kp/DetectorStrategy` is deliberately left at its GFTT+ORB default: the
+cheaper GFTT+BRIEF option needs OpenCV xfeatures2d, which the Humble binaries
+lack — setting it just logs warnings and falls back anyway. Verified on-robot.)
 
 And the thin launch node in `launch/rtabmap_slam_launch.py` — it includes
 `slam_launch.py`'s robot+lidar parts **minus slam_toolbox**, plus the camera
@@ -218,10 +225,11 @@ Node(
 )
 ```
 
-Nine RTAB-Map parameters, each traceable to a category. Deliberately **left at
+Ten RTAB-Map parameters, each traceable to a category. Deliberately **left at
 default** (change only via §6, symptom first): `Rtabmap/DetectionRate` (default
-is already 1 Hz), all `Icp/*`, `Mem/*`, `Rtabmap/LoopThr`,
-`RGBD/OptimizeMaxError`, `approx_sync` (default true), `sync_queue_size`.
+is already 1 Hz), `Kp/DetectorStrategy` (see above), all `Icp/*`, `Mem/*`,
+`Rtabmap/LoopThr`, `RGBD/OptimizeMaxError`, `approx_sync` (default true),
+`sync_queue_size`.
 
 ### Odometry covariance caveat
 
@@ -331,6 +339,7 @@ loop closure). It degrades gracefully — prefer it over hard node caps.
 | Symptom | Likely cause | Fix |
 |---|---|---|
 | `Did not receive data since 5 seconds!` | topic names, QoS mismatch, or stamps too far apart for `approx_sync` | check remaps; `qos_scan: 2`; raise `sync_queue_size`; verify clocks (all in one container — should be fine) |
+| Every closure rejected: `Not enough features in images (old=0, new=NNN)` | mono nodes have no 3D visual features, so the visual transform-guess stage can never pass — closures die before scan ICP runs | `RGBD/LoopClosureIdentityGuess: "true"` (in the config since 2026-07-07; this row documents the log signature) |
 | Map is mirrored | laser orientation TF changed (current yaw = π is verified correct) | restore yaw = π; roll = π would mirror scans |
 | Map -> odom TF missing | rtabmap not initialized (no data) or slam_toolbox also running | fix inputs; never run both SLAMs |
 | Everything drifts, no closures ever | camera dark/blurry, or `Kp/MaxFeatures` starved | view `/csi_cam_0/image_raw` remotely; more light; slower driving |

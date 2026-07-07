@@ -19,6 +19,10 @@ rtabmap:
     Reg/Strategy: "1"            # ICP: camera detects loops, scan computes
                                  # the transform (no depth available)
     Grid/Sensor: "0"             # grid from scan; default (1) expects a depth camera
+    RGBD/LoopClosureIdentityGuess: "true"   # skip the visual transform-guess stage:
+                                 # mono nodes have no 3D features, so it rejects
+                                 # every closure ("Not enough features, old=0");
+                                 # identity guess hands the job straight to scan ICP
 
     # ---- STANDARD: upstream 2D-lidar reference config (TurtleBot3 demo) ----
     Reg/Force3DoF: "true"                   # ground vehicle, 2D
@@ -32,4 +36,6 @@ rtabmap:
     # ---- EMBEDDED PERFORMANCE (upstream RPi/Jetson guidance; defaults assume desktop) ----
     Rtabmap/TimeThr: "700"       # ms; bounds map-update time via WM->LTM transfer
     Kp/MaxFeatures: "200"        # BoW features per image (default 500)
-    Kp/DetectorStrategy: "6"     # GFTT+BRIEF, cheaper than default GFTT+ORB
+    # Kp/DetectorStrategy left at default (GFTT+ORB): BRIEF needs OpenCV
+    # xfeatures2d, which the Humble binaries lack — setting "6" just logs
+    # warnings and falls back to the default anyway (verified on-robot).
