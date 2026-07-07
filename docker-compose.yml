@@ -17,6 +17,8 @@ services:
       - ROS_DOMAIN_ID=${ROS_DOMAIN_ID:-0}
     volumes:
       - /tmp:/tmp
+      # RTAB-Map database (the map) persisted across container restarts
+      - ./maps/rtabmap:/data/rtabmap
       # Optional: Mount source code for active development instead of using the copied version
       # - ./src/jetracer_ros2:/ros2_ws/src/jetracer_ros2
     devices:

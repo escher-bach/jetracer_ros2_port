@@ -1,0 +1,35 @@
+# RTAB-Map: lidar SLAM with visual (mono camera) loop-closure detection.
+# Parameter policy (see RTABMAP.md §4): only required / upstream-standard /
+# repo-proven / embedded-performance values are set. Everything else stays at
+# default and is tuned symptom-first, one knob at a time (RTABMAP.md §6).
+rtabmap:
+  ros__parameters:
+    # ---- REQUIRED: topology / plumbing ----
+    frame_id: base_footprint
+    subscribe_rgb: true          # mono camera: RGB without depth
+    subscribe_depth: false
+    subscribe_scan: true
+    qos_scan: 2                  # sllidar publishes BEST_EFFORT; without this
+                                 # the scan subscription gets no data
+    database_path: /data/rtabmap/rtabmap.db   # docker-compose volume
+
+    # RTAB-Map library params below are STRING parameters — keep the quotes.
+
+    # ---- REQUIRED: mono camera cannot compute transforms ----
+    Reg/Strategy: "1"            # ICP: camera detects loops, scan computes
+                                 # the transform (no depth available)
+    Grid/Sensor: "0"             # grid from scan; default (1) expects a depth camera
+
+    # ---- STANDARD: upstream 2D-lidar reference config (TurtleBot3 demo) ----
+    Reg/Force3DoF: "true"                   # ground vehicle, 2D
+    RGBD/NeighborLinkRefining: "true"       # refine odom links with scan ICP
+    RGBD/ProximityBySpace: "true"           # scan-based proximity re-localization
+    RGBD/ProximityPathMaxNeighbors: "10"    # default 0 = scan proximity off
+
+    # ---- PROVEN IN THIS REPO ----
+    Grid/RangeMax: "8.0"         # = max_laser_range in slam_toolbox_params.yaml
+
+    # ---- EMBEDDED PERFORMANCE (upstream RPi/Jetson guidance; defaults assume desktop) ----
+    Rtabmap/TimeThr: "700"       # ms; bounds map-update time via WM->LTM transfer
+    Kp/MaxFeatures: "200"        # BoW features per image (default 500)
+    Kp/DetectorStrategy: "6"     # GFTT+BRIEF, cheaper than default GFTT+ORB
