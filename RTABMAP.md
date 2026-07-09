@@ -196,6 +196,11 @@ rtabmap:
     # ---- (c) PROVEN IN THIS REPO ----
     Grid/RangeMax: "8.0"         # = max_laser_range in slam_toolbox_params.yaml
 
+    # ---- (e) LOOP-CLOSURE GATES relaxed for sparse A1 + drifty odom (§6) ----
+    Icp/MaxTranslation: "0.4"    # default 0.2; A1 drift at loop time > 20 cm
+    RGBD/OptimizeMaxError: "4.0" # default 3.0; sparse-scan ICP overconfident,
+                                 # inflates error ratio on CORRECT closures
+
     # ---- (d) EMBEDDED PERFORMANCE (upstream RPi/Jetson guidance) ----
     Rtabmap/TimeThr: "700"       # ms; bounds map-update time by moving old nodes
                                  # WM->LTM (default 0 = unbounded, desktop-sized)
@@ -225,11 +230,19 @@ Node(
 )
 ```
 
-Ten RTAB-Map parameters, each traceable to a category. Deliberately **left at
+Twelve RTAB-Map parameters, each traceable to a category. Deliberately **left at
 default** (change only via §6, symptom first): `Rtabmap/DetectionRate` (default
-is already 1 Hz), `Kp/DetectorStrategy` (see above), all `Icp/*`, `Mem/*`,
-`Rtabmap/LoopThr`, `RGBD/OptimizeMaxError`, `approx_sync` (default true),
+is already 1 Hz), `Kp/DetectorStrategy` (see above), the other `Icp/*`, `Mem/*`,
+`Rtabmap/LoopThr`, `Icp/CorrespondenceRatio`, `approx_sync` (default true),
 `sync_queue_size`.
+
+Category (e) was added empirically on-robot: with `LoopClosureIdentityGuess`
+working, ICP started computing real loop-closure transforms but they were
+rejected by two gates tuned for dense desktop scanners — `Icp/MaxTranslation`
+(correct >20 cm corrections capped) and `RGBD/OptimizeMaxError` (correct ~1.4°
+closures rejected at ratio 4.29 because sparse A1 ICP reports an overconfident
+covariance). Landing loop closures is what heals an odometry yaw jump — see the
+ghost-lab note in §6.3.
 
 ### Odometry covariance caveat
 
@@ -297,18 +310,42 @@ loop closure). It degrades gracefully — prefer it over hard node caps.
 
 ### 6.3 Loop closure quality
 
+**The "ghost lab" failure — why loop closures matter more than they look.**
+Symptom: driving straight is fine, then during a turn a rotated duplicate of an
+already-mapped area appears and the session never recovers. Mechanism: RTAB-Map
+trusts `/odom` between graph nodes (it does *not* continuously scan-match every
+frame the way slam_toolbox does), so a single odometry yaw discontinuity — the
+known MCU yaw jump absorbed by `ekf.yaml`'s differential IMU fusion, or wheel
+slip in a hard Ackermann turn — places subsequent scans at a wrong heading and
+duplicates the space. A **loop closure is the only thing that heals this**: it
+lets the graph optimizer pull the ghost back onto the real map. So chronic
+loop-closure rejection doesn't just "miss optimizations" — it removes the
+system's only recovery from odom jumps, turning a transient glitch into a
+session-ending derail. Critically, the camera (appearance/BoW) is the only
+*odometry-independent* revisit detector: `RGBD/ProximityBySpace` searches by the
+odom-predicted pose, so it fails exactly when odom has jumped. This is why the
+camera is load-bearing here, not garnish — and why a camera outputting noise is
+*worse* than none (it injects false candidates rather than degrading to clean
+lidar SLAM). Durable fix is at the odom layer (lidar ICP odometry, or the driver
+yaw-discontinuity bench-test item); the cheap fix is making closures land (below).
+
 - **Too few closures:** first check driving pattern (loops facing the same
   direction) and lighting — BoW hates auto-exposure swings. Then, if CPU
   headroom allows, raise `Kp/MaxFeatures` back toward its 500 default (our 200
   baseline trades recall for CPU). Only then lower `Rtabmap/LoopThr`
   (default 0.11 → 0.09; below ~0.07 expect false positives).
 - **Wrong closures accepted (map folds onto itself):** raise `Rtabmap/LoopThr`;
-  tighten `RGBD/OptimizeMaxError` (default 3.0 → 2.0); verify scan ICP params
-  (a bad ICP transform on a correct visual detection also folds the map).
-- **Closures detected but rejected** (`RGBD/OptimizeMaxError` in log): the
-  optimizer thinks the closure contradicts odometry. Either odometry covariance
-  is too confident (revisit `ekf.yaml` process noise — but per the odometry
-  evidence standard, only with bench data) or the ICP transform is bad (§6.4).
+  tighten `RGBD/OptimizeMaxError` back toward the 3.0 default (our baseline is
+  4.0 — see below); verify scan ICP params (a bad ICP transform on a correct
+  visual detection also folds the map).
+- **Closures detected but rejected** (`RGBD/OptimizeMaxError` in log, error ratio
+  above the limit): the optimizer thinks the closure contradicts odometry. With
+  sparse A1 scans this is usually an *overconfident ICP covariance* on an
+  otherwise-correct closure (small absolute error, e.g. ~1–2°, but a high
+  ratio) — the reason our baseline raises the limit to **4.0**. Distinguish from
+  a genuinely wrong closure by the absolute error: tens of degrees = real ghost,
+  keep it out; a couple degrees = calibration, let it in. Only suspect
+  `ekf.yaml` covariance with bench data (odometry evidence standard).
 
 ### 6.4 Scan ICP (all at defaults initially)
 
