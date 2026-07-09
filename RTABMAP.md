@@ -200,6 +200,8 @@ rtabmap:
     Icp/MaxTranslation: "0.4"    # default 0.2; A1 drift at loop time > 20 cm
     RGBD/OptimizeMaxError: "4.0" # default 3.0; sparse-scan ICP overconfident,
                                  # inflates error ratio on CORRECT closures
+    Icp/CorrespondenceRatio: "0.06"  # default 0.10; A1 repeatedly measured
+                                 # 0.055-0.092 overlap on valid geometry
 
     # ---- (d) EMBEDDED PERFORMANCE (upstream RPi/Jetson guidance) ----
     Rtabmap/TimeThr: "700"       # ms; bounds map-update time by moving old nodes
@@ -230,19 +232,23 @@ Node(
 )
 ```
 
-Twelve RTAB-Map parameters, each traceable to a category. Deliberately **left at
-default** (change only via §6, symptom first): `Rtabmap/DetectionRate` (default
-is already 1 Hz), `Kp/DetectorStrategy` (see above), the other `Icp/*`, `Mem/*`,
-`Rtabmap/LoopThr`, `Icp/CorrespondenceRatio`, `approx_sync` (default true),
+Thirteen RTAB-Map parameters, each traceable to a category. Deliberately **left
+at default** (change only via §6, symptom first): `Rtabmap/DetectionRate`
+(default is already 1 Hz), `Kp/DetectorStrategy` (see above), the other
+`Icp/*`, `Mem/*`, `Rtabmap/LoopThr`, `approx_sync` (default true),
 `sync_queue_size`.
 
 Category (e) was added empirically on-robot: with `LoopClosureIdentityGuess`
 working, ICP started computing real loop-closure transforms but they were
-rejected by two gates tuned for dense desktop scanners — `Icp/MaxTranslation`
-(correct >20 cm corrections capped) and `RGBD/OptimizeMaxError` (correct ~1.4°
+rejected by gates tuned for dense desktop scanners — `Icp/MaxTranslation`
+(correct >20 cm corrections capped), `RGBD/OptimizeMaxError` (correct ~1.4°
 closures rejected at ratio 4.29 because sparse A1 ICP reports an overconfident
-covariance). Landing loop closures is what heals an odometry yaw jump — see the
-ghost-lab note in §6.3.
+covariance), and `Icp/CorrespondenceRatio` (valid geometry repeatedly measured
+at 0.055-0.092 overlap, below the 0.10 default). Landing loop closures is what
+heals an odometry yaw jump — see the ghost-lab note in §6.3. Trade-off: a lower
+correspondence-ratio floor also raises the chance ICP converges on ambiguous
+geometry (corridors, symmetric rooms) — watch for map folding, not just for
+more accepted closures.
 
 ### Odometry covariance caveat
 
@@ -353,8 +359,9 @@ yaw-discontinuity bench-test item); the cheap fix is making closures land (below
   `Icp/MaxCorrespondenceDistance` (default 0.1 → 0.2–0.3); check the scan isn't
   mostly chassis returns (the box filter handles this — confirm
   `/scan_filtered` is the subscribed topic).
-- ICP succeeds but refined poses jitter: raise `Icp/CorrespondenceRatio`
-  (default 0.1 → 0.2–0.3) so weak matches are rejected; consider
+- ICP succeeds but refined poses jitter, or the map starts folding onto itself:
+  raise `Icp/CorrespondenceRatio` back toward the 0.10 default (our baseline is
+  0.06 — see §4(e)) so weak-overlap matches are rejected again; consider
   `Icp/VoxelSize 0` (default 0.05; 0 = no downsampling — A1 scans are already
   sparse).
 - Featureless corridors: ICP slides longitudinally. That's what the camera
