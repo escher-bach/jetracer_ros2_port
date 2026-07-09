@@ -14,7 +14,7 @@ rtabmap:
     database_path: /data/rtabmap/rtabmap.db   # docker-compose volume
 
     # RTAB-Map library params below are STRING parameters — keep the quotes.
-
+    Icp/MaxTranslation: "0.4"
     # ---- REQUIRED: mono camera cannot compute transforms ----
     Reg/Strategy: "1"            # ICP: camera detects loops, scan computes
                                  # the transform (no depth available)
