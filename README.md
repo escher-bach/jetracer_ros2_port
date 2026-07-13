@@ -72,7 +72,7 @@ For example, setting the namespace to `bot1` will cause the topics to appear on 
 |---|---|
 | `jetracer_launch.py` | `jetracer_node` + EKF + static TFs |
 | `slam_launch.py` | jetracer + LiDAR + laser filter + SLAM Toolbox |
-| `rtabmap_slam_launch.py` | jetracer + LiDAR + filter + camera + RTAB-Map (instead of SLAM Toolbox — see `RTABMAP.md`) |
+| `rtabmap_slam_launch.py` | jetracer + LiDAR + filter + camera + RTAB-Map (instead of SLAM Toolbox — see `RTABMAP.md` in `../jetracer_ros2_port_documentation/`) |
 | `camera_slam_nav_launch.py` | SLAM + camera + Nav2 all-in-one *(primary demo)* |
 | `localization_launch.py` | Saved-map nav: map_server + AMCL + Nav2. Accepts `map:=` |
 | `nav_launch.py` | Nav2 stack only |

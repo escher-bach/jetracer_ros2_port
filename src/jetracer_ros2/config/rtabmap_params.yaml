@@ -1,5 +1,5 @@
 # RTAB-Map: lidar SLAM with visual (mono camera) loop-closure detection.
-# Parameter policy (see RTABMAP.md §4): only required / upstream-standard /
+# Parameter policy (see RTABMAP.md §4, in ../jetracer_ros2_port_documentation/): only required / upstream-standard /
 # repo-proven / embedded-performance values are set. Everything else stays at
 # default and is tuned symptom-first, one knob at a time (RTABMAP.md §6).
 rtabmap:
