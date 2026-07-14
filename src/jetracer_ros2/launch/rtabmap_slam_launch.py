@@ -50,6 +50,21 @@ def generate_launch_description():
             PythonLaunchDescriptionSource(camera_launch_path)
         ),
 
+        # 4b. Scan deskewing: A1 rev takes ~133 ms, up to ~19 deg smear/scan at speed (bench 2026-07-13)
+        Node(
+            package='rtabmap_util',
+            executable='lidar_deskewing',
+            name='lidar_deskewing',
+            output='screen',
+            parameters=[{
+                'fixed_frame_id': 'odom',
+                'wait_for_transform': 0.2,   # EKF TF is 30 Hz; default 0.01 drops scans
+                'slerp': True,               # start/end interpolation, cheap on the Nano CPU
+            }],
+            remappings=[('input_scan', '/scan_filtered')]
+            # publishes PointCloud2 on /scan_filtered/deskewed
+        ),
+
         # 5. RTAB-Map SLAM. Replaces slam_toolbox as the map->odom publisher —
         # never run this together with slam_launch.py.
         Node(
@@ -61,7 +76,7 @@ def generate_launch_description():
             remappings=[
                 ('rgb/image', '/csi_cam_0/image_raw'),
                 ('rgb/camera_info', '/csi_cam_0/camera_info'),
-                ('scan', '/scan_filtered'),
+                ('scan_cloud', '/scan_filtered/deskewed'),  # deskewed cloud replaces raw scan
                 ('odom', '/odom'),
                 ('grid_map', '/map')  # Nav2 expects /map
             ],

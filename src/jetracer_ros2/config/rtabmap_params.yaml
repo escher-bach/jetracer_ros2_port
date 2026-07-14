@@ -8,9 +8,10 @@ rtabmap:
     frame_id: base_footprint
     subscribe_rgb: true          # mono camera: RGB without depth
     subscribe_depth: false
-    subscribe_scan: true
-    qos_scan: 2                  # sllidar publishes BEST_EFFORT; without this
-                                 # the scan subscription gets no data
+    # scan input is the deskew node's PointCloud2 (RELIABLE, so the old qos_scan
+    # override for sllidar's BEST_EFFORT scan is no longer needed)
+    subscribe_scan: false
+    subscribe_scan_cloud: true
     database_path: /data/rtabmap/rtabmap.db   # docker-compose volume
 
     # RTAB-Map library params below are STRING parameters — keep the quotes.

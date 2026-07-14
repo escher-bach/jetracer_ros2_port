@@ -25,6 +25,7 @@
   <exec_depend>nav2_bringup</exec_depend>
   <exec_depend>slam_toolbox</exec_depend>
   <exec_depend>rtabmap_slam</exec_depend>
+  <exec_depend>rtabmap_util</exec_depend>
   <exec_depend>laser_filters</exec_depend>
   <exec_depend>image_transport_plugins</exec_depend>
   <exec_depend>web_video_server</exec_depend>
