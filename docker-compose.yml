@@ -19,6 +19,13 @@ services:
       - /tmp:/tmp
       # RTAB-Map database (the map) persisted across container restarts
       - ./maps/rtabmap:/data/rtabmap
+      # Segmentation model + TensorRT engine cache (engines are device- and
+      # TRT-version-specific; built on first launch by ensure_model.sh)
+      - ./models:/data/models
+      # Phase 1: jetracer_segmentation colcon-builds INSIDE the running
+      # container (its GPU deps are the runtime mounts below, absent at
+      # docker build); also shadows the image's COLCON_IGNORE marker
+      - ./src/jetracer_segmentation:/ros2_ws/src/jetracer_segmentation
       # --- GPU: native CUDA 10.2 via compute-slice bind mounts (validated by
       # jetson_cuda_experiment H0-H5; no nvidia runtime on purpose - the csv
       # runtime would also mount bionic GStreamer/EGL libs over jammy's own).

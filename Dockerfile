@@ -37,6 +37,7 @@ RUN cd src && git clone https://github.com/Slamtec/sllidar_ros2.git
 
 # Copy ONLY package.xml first to cache the slow rosdep install step
 COPY src/jetracer_ros2/package.xml src/jetracer_ros2/package.xml
+COPY src/jetracer_segmentation/package.xml src/jetracer_segmentation/package.xml
 
 # Initialize rosdep, update, and install dependencies
 # The --fix-missing flag helps if Ubuntu ports mirrors flake out (403 errors)
@@ -47,6 +48,12 @@ RUN apt-get update --fix-missing && \
 
 # Now copy the rest of the source code
 COPY src/jetracer_ros2 src/jetracer_ros2
+
+# jetracer_segmentation builds in-container, not here: it links the GPU libs,
+# which are runtime mounts absent at docker build (phase 1). rosdep above
+# still bakes its apt deps; at runtime the compose dev mount shadows this dir,
+# hiding the marker from in-container colcon.
+RUN touch src/jetracer_segmentation/COLCON_IGNORE
 
 # Build the workspace
 RUN /bin/bash -c "source /opt/ros/humble/setup.bash && colcon build --symlink-install"

@@ -7,3 +7,6 @@ __pycache__/
 
 # RTAB-Map database volume (mounted by docker-compose; runtime artifact, not source)
 maps/rtabmap/
+
+# Segmentation model/engine cache volume (mounted by docker-compose; runtime artifact)
+models/
