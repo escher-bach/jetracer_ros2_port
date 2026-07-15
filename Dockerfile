@@ -57,6 +57,30 @@ RUN echo "source /opt/ros/humble/setup.bash" >> /root/.bashrc && \
     echo "export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp" >> /root/.bashrc && \
     echo "export ROS_DOMAIN_ID=\${ROS_DOMAIN_ID:-0}" >> /root/.bashrc
 
+# --- GPU, phase 1: host bind mounts (see docs GPU_IN_CONTAINER.md) ---
+# Linker search paths for the runtime mounts (harmless dangling when absent),
+# mirroring a JetPack host's own nvidia-tegra ld.so.conf, plus the
+# conventional /usr/local/cuda symlink.
+RUN printf '%s\n' /usr/lib/aarch64-linux-gnu/tegra /usr/local/cuda-10.2/lib64 \
+        > /etc/ld.so.conf.d/000-cuda-tegra.conf && \
+    ln -s /usr/local/cuda-10.2 /usr/local/cuda
+
+# gcc-8 as the nvcc host compiler: nvcc 10.2 requires gcc <= 8, which jammy
+# does not ship. Pulled from focal ports pinned at priority 100 so jammy
+# packages always win; only gcc-8 and its private deps come from focal.
+# (Proven: jetson_cuda_experiment H3/H4.)
+RUN echo "deb http://ports.ubuntu.com/ubuntu-ports focal main universe" \
+        > /etc/apt/sources.list.d/focal.list && \
+    printf 'Package: *\nPin: release n=focal\nPin-Priority: 100\n' \
+        > /etc/apt/preferences.d/focal && \
+    apt-get update && apt-get install -y --no-install-recommends gcc-8 g++-8 && \
+    rm -rf /var/lib/apt/lists/*
+
+ENV PATH=/usr/local/cuda-10.2/bin:$PATH \
+    CUDA_HOME=/usr/local/cuda-10.2 \
+    CUDAHOSTCXX=/usr/bin/g++-8 \
+    CUDAARCHS=53
+
 # Copy entrypoint
 COPY entrypoint.sh /
 RUN chmod +x /entrypoint.sh
