@@ -37,6 +37,7 @@ RUN cd src && git clone https://github.com/Slamtec/sllidar_ros2.git
 
 # Copy ONLY package.xml first to cache the slow rosdep install step
 COPY src/jetracer_ros2/package.xml src/jetracer_ros2/package.xml
+COPY src/jetracer_segmentation/package.xml src/jetracer_segmentation/package.xml
 
 # Initialize rosdep, update, and install dependencies
 # The --fix-missing flag helps if Ubuntu ports mirrors flake out (403 errors)
@@ -48,6 +49,12 @@ RUN apt-get update --fix-missing && \
 # Now copy the rest of the source code
 COPY src/jetracer_ros2 src/jetracer_ros2
 
+# jetracer_segmentation builds in-container, not here: it links the GPU libs,
+# which are runtime mounts absent at docker build (phase 1). rosdep above
+# still bakes its apt deps; at runtime the compose dev mount shadows this dir,
+# hiding the marker from in-container colcon.
+RUN touch src/jetracer_segmentation/COLCON_IGNORE
+
 # Build the workspace
 RUN /bin/bash -c "source /opt/ros/humble/setup.bash && colcon build --symlink-install"
 
@@ -56,6 +63,30 @@ RUN echo "source /opt/ros/humble/setup.bash" >> /root/.bashrc && \
     echo "source /ros2_ws/install/setup.bash" >> /root/.bashrc && \
     echo "export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp" >> /root/.bashrc && \
     echo "export ROS_DOMAIN_ID=\${ROS_DOMAIN_ID:-0}" >> /root/.bashrc
+
+# --- GPU, phase 1: host bind mounts (see docs GPU_IN_CONTAINER.md) ---
+# Linker search paths for the runtime mounts (harmless dangling when absent),
+# mirroring a JetPack host's own nvidia-tegra ld.so.conf, plus the
+# conventional /usr/local/cuda symlink.
+RUN printf '%s\n' /usr/lib/aarch64-linux-gnu/tegra /usr/local/cuda-10.2/lib64 \
+        > /etc/ld.so.conf.d/000-cuda-tegra.conf && \
+    ln -s /usr/local/cuda-10.2 /usr/local/cuda
+
+# gcc-8 as the nvcc host compiler: nvcc 10.2 requires gcc <= 8, which jammy
+# does not ship. Pulled from focal ports pinned at priority 100 so jammy
+# packages always win; only gcc-8 and its private deps come from focal.
+# (Proven: jetson_cuda_experiment H3/H4.)
+RUN echo "deb http://ports.ubuntu.com/ubuntu-ports focal main universe" \
+        > /etc/apt/sources.list.d/focal.list && \
+    printf 'Package: *\nPin: release n=focal\nPin-Priority: 100\n' \
+        > /etc/apt/preferences.d/focal && \
+    apt-get update && apt-get install -y --no-install-recommends gcc-8 g++-8 && \
+    rm -rf /var/lib/apt/lists/*
+
+ENV PATH=/usr/local/cuda-10.2/bin:$PATH \
+    CUDA_HOME=/usr/local/cuda-10.2 \
+    CUDAHOSTCXX=/usr/bin/g++-8 \
+    CUDAARCHS=53
 
 # Copy entrypoint
 COPY entrypoint.sh /

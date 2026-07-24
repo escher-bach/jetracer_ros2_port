@@ -17,6 +17,30 @@ services:
       - ROS_DOMAIN_ID=${ROS_DOMAIN_ID:-0}
     volumes:
       - /tmp:/tmp
+      # RTAB-Map database (the map) persisted across container restarts
+      - ./maps/rtabmap:/data/rtabmap
+      # Segmentation model + TensorRT engine cache (engines are device- and
+      # TRT-version-specific; built on first launch by ensure_model.sh)
+      - ./models:/data/models
+      # Phase 1: jetracer_segmentation colcon-builds INSIDE the running
+      # container (its GPU deps are the runtime mounts below, absent at
+      # docker build); also shadows the image's COLCON_IGNORE marker
+      - ./src/jetracer_segmentation:/ros2_ws/src/jetracer_segmentation
+      # --- GPU: native CUDA 10.2 via compute-slice bind mounts (validated by
+      # jetson_cuda_experiment H0-H5; no nvidia runtime on purpose - the csv
+      # runtime would also mount bionic GStreamer/EGL libs over jammy's own).
+      # Device nodes (/dev/nvhost-*, /dev/nvmap) come from privileged: true.
+      - /usr/local/cuda-10.2:/usr/local/cuda-10.2:ro
+      - /usr/lib/aarch64-linux-gnu/tegra:/usr/lib/aarch64-linux-gnu/tegra:ro
+      # Host lib pantry: NOT on the linker path; entrypoint symlinks only the
+      # compute libs (cublas/cudnn/nvinfer) out of it into /opt/nvlinks
+      - /usr/lib/aarch64-linux-gnu:/hostlib:ro
+      # trtexec + sample data, for one-shot TensorRT engine building
+      - /usr/src/tensorrt:/usr/src/tensorrt:ro
+      # Host include pantry (TRT NvInfer*.h + cuDNN headers). NEVER mount it
+      # in place - it also holds bionic glibc headers; the entrypoint symlinks
+      # only Nv*/cudnn* into the container's standard include dir.
+      - /usr/include:/hostinclude:ro
       # Optional: Mount source code for active development instead of using the copied version
       # - ./src/jetracer_ros2:/ros2_ws/src/jetracer_ros2
     devices:

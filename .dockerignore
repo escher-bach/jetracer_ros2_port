@@ -1,6 +1,7 @@
 build/
 install/
 log/
+models/
 .git/
 .gitignore
 .vscode/

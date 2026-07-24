@@ -35,8 +35,11 @@ def generate_launch_description():
     )
     
     declare_frame_id = DeclareLaunchArgument(
-        'frame_id', 
-        default_value='camera_frame',
+        'frame_id',
+        # Must match the optical frame published by jetracer_launch.py
+        # (base_footprint -> camera_link -> camera_link_optical). Images are in
+        # optical convention (z forward), so stamp with the optical frame.
+        default_value='camera_link_optical',
         description='Camera TF frame ID'
     )
     
@@ -63,7 +66,7 @@ def generate_launch_description():
     gscam_config = ParameterValue([
         'shmsrc socket-path=', socket_path,
         ' is-live=true do-timestamp=true ! ',
-        'video/x-raw, format=(string)RGBA, width=(int)680, height=(int)420, framerate=(fraction)30/1 ! ',
+        'video/x-raw, format=(string)RGBA, width=(int)640, height=(int)420, framerate=(fraction)30/1 ! ',
         'videoconvert'
     ], value_type=str)
 
@@ -101,7 +104,7 @@ def generate_launch_description():
             ['rm -f ', socket_path, ' && gst-launch-1.0 nvarguscamerasrc sensor-id=0 ! '
              "'video/x-raw(memory:NVMM), width=(int)1280, height=(int)720, format=(string)NV12, framerate=(fraction)30/1' ! "
              'nvvidconv flip-method=0 ! '
-             "'video/x-raw(memory:NVMM), width=(int)680, height=(int)420, format=(string)RGBA' ! "
+             "'video/x-raw(memory:NVMM), width=(int)640, height=(int)420, format=(string)RGBA' ! "
              'nvvidconv ! '
              "'video/x-raw, format=(string)RGBA' ! "
              'queue leaky=downstream max-size-buffers=5 ! '

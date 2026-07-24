@@ -1,0 +1,12 @@
+# Claude Code session workspace — not part of the robot stack
+.claude/
+
+# Python bytecode (launch files get compiled in-place on the Jetson)
+__pycache__/
+*.pyc
+
+# RTAB-Map database volume (mounted by docker-compose; runtime artifact, not source)
+maps/rtabmap/
+
+# Segmentation model/engine cache volume (mounted by docker-compose; runtime artifact)
+models/

@@ -330,8 +330,7 @@ private:
       
       double  imu_list[9];
       double  odom_list[6];
-      rclcpp::Time now_time, last_time;
-      last_time = this->now();
+      rclcpp::Time now_time;
       
       sensor_msgs::msg::Imu imu_msgs;
       geometry_msgs::msg::TransformStamped odom_trans;
@@ -457,12 +456,11 @@ private:
                 odom_msgs.child_frame_id = "base_footprint";
                 
                 {
-                    double dt = (now_time - last_time).seconds();
-                    if (dt > 0.0) {
-                        odom_msgs.twist.twist.linear.x = odom_list[3] / dt;
-                        odom_msgs.twist.twist.linear.y = odom_list[4] / dt;
-                        odom_msgs.twist.twist.angular.z = odom_list[5] / dt;
-                    }
+                    // Each delta spans one MCU tick; dividing by the receive interval spiked to -18.77 m/s on burst arrivals (bench bags 2026-07-13)
+                    constexpr double nominal_period = 0.02;   // 50 Hz MCU frame cadence, bench-measured
+                    odom_msgs.twist.twist.linear.x = odom_list[3] / nominal_period;
+                    odom_msgs.twist.twist.linear.y = odom_list[4] / nominal_period;
+                    odom_msgs.twist.twist.angular.z = odom_list[5] / nominal_period;
                 }
                 
                 odom_msgs.twist.covariance = { 1e-3, 0, 0, 0, 0, 0,
@@ -490,7 +488,6 @@ private:
                 lset_pub_->publish(lset_msgs);
                 rset_pub_->publish(rset_msgs);
 
-                last_time = now_time;
                 state = State_Head1;
                 break;
             }

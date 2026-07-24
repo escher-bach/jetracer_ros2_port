@@ -9,11 +9,12 @@ ekf_filter_node:
     world_frame: odom
 
     # Wheel odometry input - Fuse velocities instead of absolute position
+    # vyaw off: wheel yaw rate is open-loop kinematics, not gyro (bench bags 2026-07-13: +436 deg vs gyro in 116 s) - yaw comes from imu0 alone
     odom0: /odom_raw
     odom0_config: [false, false, false,  # X, Y, Z
                    false, false, false,  # roll, pitch, yaw
                    true,  false, false,  # vx, vy, vz
-                   false, false, true,   # vroll, vpitch, vyaw
+                   false, false, false,  # vroll, vpitch, vyaw
                    false, false, false]  # ax, ay, az
     odom0_differential: false
 
