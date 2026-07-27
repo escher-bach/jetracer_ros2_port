@@ -2,10 +2,19 @@ version: '3.8'
 
 services:
   jetracer:
+    # Prebuilt by .github/workflows/build-image.yml on a native arm64 runner.
+    # Normal path on the robot is `docker compose pull` — the digest comparison
+    # is the "is it outdated?" check, so the Nano never runs rosdep itself.
+    # Pin to a rollback build with e.g. JETRACER_TAG=sha-1a2b3c4.
+    image: ghcr.io/escher-bach/jetracer-ros2:${JETRACER_TAG:-latest}
+    pull_policy: always
+    # Escape hatch: `docker compose build` still works on the robot, and
+    # cache_from means even that pulls the rosdep layer instead of resolving it.
     build:
       context: .
       dockerfile: Dockerfile
-    image: jetracer-ros2:latest
+      cache_from:
+        - ghcr.io/escher-bach/jetracer-ros2:buildcache
     container_name: my_jetracer
     network_mode: "host"
     ipc: "host"

@@ -1,0 +1,68 @@
+name: build-image
+
+# Builds the JetRacer image on a native arm64 runner and pushes it to GHCR, so
+# the Nano never resolves the (very large) nav2 + rtabmap rosdep set itself.
+# Deploy side is `docker compose pull && docker compose up -d` on the robot.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'Dockerfile'
+      - 'entrypoint.sh'
+      - 'src/**'
+      - '.dockerignore'
+      - '.github/workflows/build-image.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: build-image
+  cancel-in-progress: true
+
+env:
+  IMAGE: ghcr.io/${{ github.repository_owner }}/jetracer-ros2
+
+jobs:
+  build:
+    # Native arm64. QEMU emulation on an x86 runner would make the rosdep
+    # unpack far slower than the thing we are trying to fix.
+    runs-on: ubuntu-24.04-arm
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE }}
+          tags: |
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=sha,format=short
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          # Registry cache, not type=gha: the GitHub Actions cache is capped at
+          # 10 GB per repo with LRU eviction, and the rosdep layer plus mode=max
+          # intermediates would thrash exactly the entry we care about.
+          cache-from: type=registry,ref=${{ env.IMAGE }}:buildcache
+          cache-to: type=registry,ref=${{ env.IMAGE }}:buildcache,mode=max
+          # Docker on JetPack 4.5 is too old for buildx's OCI attestation
+          # manifest list and fails the pull with an unsupported media type.
+          provenance: false
+          sbom: false
