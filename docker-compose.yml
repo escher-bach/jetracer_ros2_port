@@ -62,9 +62,19 @@ services:
     stdin_open: true
 
   zenoh-bridge:
-    image: eclipse/zenoh-bridge-ros2dds:latest
+    # Pinned, not :latest — an unpinned tag means two robots silently run
+    # different bridges depending on when each last pulled. 1.9.0 is what
+    # :latest resolved to as of 2026-07-27.
+    image: eclipse/zenoh-bridge-ros2dds:1.9.0
     container_name: my_jetracer_zenoh
     network_mode: "host"
+    # JetPack 4.5 ships libseccomp 2.4.x, which predates clone3. Docker's
+    # default profile pairs a clone3 ERRNO(ENOSYS) rule with an ERRNO(EPERM)
+    # default; this runc collapses both to plain SCMP_ACT_ERRNO and libseccomp
+    # rejects the rule as redundant, so the container never starts. The
+    # jetracer service dodges this via privileged + unconfined already.
+    security_opt:
+      - seccomp:unconfined
     environment:
       - ROS_DOMAIN_ID=${ROS_DOMAIN_ID:-0}
       - ROS_DISTRO=humble
