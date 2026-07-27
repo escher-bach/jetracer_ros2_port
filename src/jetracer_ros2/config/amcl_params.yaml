@@ -6,6 +6,56 @@ amcl:
     global_frame_id: "map"
     scan_topic: /scan_filtered
 
+    # ── Tuning pass 1 (AMCL only) ────────────────────────────────────────────
+    # Rationale for every value below is recorded in
+    #   ../jetracer_ros2_port_documentation/NAV2_AMCL_TUNING.md
+    # Goal of this pass: cleaner map->odom correction (less "jump at speed") and
+    # real recovery, so the frozen map stops disagreeing with reality and the
+    # controller/planner stop failing falsely (root cause of the AMCL-mode-only
+    # spin/wait recovery loop). Motion-noise (alpha*) is deliberately left at
+    # defaults — see group E.
+
+    # A. Global recovery — adaptive MCL. When the average scan-match likelihood
+    #    drops, inject random particles so the filter re-converges instead of
+    #    staying lost (kidnap / bad guess). This is the "fix-it" half of the
+    #    fleet guess-then-fix strategy. Startup pose still seeded manually (RViz)
+    #    this pass; global-localization-on-startup is the next micro-step.
+    recovery_alpha_slow: 0.001
+    recovery_alpha_fast: 0.1
+    set_initial_pose: false
+
+    # B. Laser match quality (primary lever for the "jumps when moving fast"
+    #    symptom). Cap to the RPLIDAR A1's usable range — matches SLAM's 8.0 —
+    #    so far, noisy returns stop degrading the fit. Default was 100.0.
+    laser_model_type: "likelihood_field"
+    laser_max_range: 8.0
+    laser_min_range: 0.15
+
+    # C. Motion model — correct AMCL model for this platform. AMCL consumes odom
+    #    pose deltas only (there is no Ackermann model; "omni" would be wrong).
+    #    Independent of the (untrusted) URDF.
+    robot_model_type: "nav2_amcl::DifferentialMotionModel"
+
+    # D. Filter size + correction cadence (CPU-aware). Explicit particle counts
+    #    support the future global-localization scatter. update_min_* lowered
+    #    from defaults (0.25 m / 0.2 rad) so less odom drift accumulates between
+    #    corrections — back off if CPU-bound, push lower if jumps persist.
+    min_particles: 500
+    max_particles: 2000
+    update_min_d: 0.20
+    update_min_a: 0.15
+    transform_tolerance: 1.0
+
+    # E. Motion noise — LEFT AT DEFAULTS ON PURPOSE. These model odometry error,
+    #    and odometry is not yet characterized (velocity-only EKF + IMU yaw; see
+    #    config/ekf.yaml). Revisit only after odom is characterized — tuning them
+    #    now would be unattributable guesswork.
+    alpha1: 0.2   # rot noise from rotation
+    alpha2: 0.2   # rot noise from translation
+    alpha3: 0.2   # trans noise from translation
+    alpha4: 0.2   # trans noise from rotation
+    alpha5: 0.2   # (omni model only — unused with differential)
+
 map_server:
   ros__parameters:
     use_sim_time: false
