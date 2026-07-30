@@ -25,18 +25,32 @@ controller_server:
       stateful: True
       plugin: "nav2_controller::SimpleGoalChecker"
       xy_goal_tolerance: 0.15       # Tightened based on 20cm robot length
-      yaw_goal_tolerance: 0.5       # Match ROS 1 behavior (~28 degrees)
+      yaw_goal_tolerance: 0.785     # 45 deg, was 0.5 (~28 deg). Margin for
+                                    # terminal-arc tracking error: RPP has
+                                    # use_rotate_to_heading:false below, so
+                                    # whatever heading error the approach leaves
+                                    # is final and uncorrectable.
 
     FollowPath:
       plugin: "nav2_regulated_pure_pursuit_controller::RegulatedPurePursuitController"
       desired_linear_vel: 0.3
-      lookahead_dist: 0.8            # Fixed lookahead distance for stable tracking
-      min_lookahead_dist: 0.8        # Kept same as lookahead to prevent shrinking
-      max_lookahead_dist: 0.8        # Kept same as lookahead to prevent shrinking
-      lookahead_time: 1.5
+      # RPP takes as its carrot the first path point at least lookahead_dist
+      # away; if the remaining path is shorter than that, the carrot collapses
+      # onto the path's END point. Pinned at 0.8m, that meant the last 0.8m of
+      # every goal was driven as a straight chord at the goal point, cutting off
+      # the terminal Reeds-Shepp arc that swings the car into the goal heading.
+      #
+      # Velocity-scaled: lookahead = v * lookahead_time, clamped [min, max]:
+      #   cruise   0.30 m/s * 2.5 = 0.75m  (what the fixed 0.8 was achieving)
+      #   approach 0.05 m/s * 2.5 = 0.12m  -> floored at min_lookahead_dist,
+      #                                       so 0.25m governs the endgame
+      lookahead_dist: 0.8            # fallback if velocity scaling is disabled
+      min_lookahead_dist: 0.25       # was 0.8
+      max_lookahead_dist: 0.8
+      lookahead_time: 2.5            # was 1.5
       rotate_to_heading_angular_vel: 0.0   # Cannot rotate in place — Ackermann
       transform_tolerance: 0.5
-      use_velocity_scaled_lookahead_dist: false # TURNED OFF to prevent jitter and sudden darting near goal
+      use_velocity_scaled_lookahead_dist: true  # was false
       min_approach_linear_velocity: 0.05
       approach_velocity_scaling_dist: 0.6  # Increased to slow down earlier and prevent overshoot
                                            # the "slow crawl into tolerance zone then overshoot" issue
