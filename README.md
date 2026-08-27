@@ -1,6 +1,6 @@
 # JetRacer ROS 2 Port
 
-ROS 2 (Humble) port of the JetRacer platform, running inside Docker on a Jetson Nano (JetPack 4.6). Covers motor control, IMU/EKF odometry, LiDAR-based SLAM, autonomous navigation (Nav2), and CSI camera streaming.
+ROS 2 (Humble) port of the JetRacer platform, running inside Docker on a Jetson Nano (JetPack 4.5). Covers motor control, IMU/EKF odometry, LiDAR-based SLAM, autonomous navigation (Nav2), and CSI camera streaming.
 
 For remote visualisation, vision pipelines, and teleoperation, see the companion repository: **[jetracer_remote_machine](https://github.com/escher-bach/jetracer_remote_machine)**.
 
@@ -16,11 +16,11 @@ cd jetracer_ros2_port
 Install prerequisites by running the install script (Docker, Docker Compose)
 ```bash
 chmod -x install.sh
-./install.sh
+bash install.sh
 ```
-Build the Docker image
+Pull the Docker image (GHCR)
 ```bash
-docker compose build
+docker compose pull
 ```
 
 ---
