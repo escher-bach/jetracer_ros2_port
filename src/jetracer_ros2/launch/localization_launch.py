@@ -1,4 +1,5 @@
 import os
+import yaml
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
@@ -65,13 +66,47 @@ def generate_launch_description():
             {'yaml_filename': LaunchConfiguration('map')}
         ])
 
+    # ── Start-dock seeding ─────────────────────────────────────────────────
+    # RMF_START_DOCK names one dock in the mounted table. That table is
+    # generated from the RMF nav graph by multirobot/tools/rmf_dock_table.py
+    # and never hand-typed, so re-SLAMming the lab is a regenerate-and-copy
+    # rather than an edit -- the 2026-07-29 remap moved the map origin and
+    # would have silently invalidated any coordinate written down by hand.
+    #
+    # Unset or MANUAL leaves amcl_params.yaml's set_initial_pose: false in
+    # place, i.e. today's seed-it-in-RViz behaviour, so this is opt-in.
+    #
+    # An unknown name is deliberately fatal rather than a fallback to manual:
+    # a robot that quietly comes up unlocalized looks identical to a healthy
+    # one until it is asked to move.
+    dock = os.environ.get('RMF_START_DOCK', '').strip()
+    initial_pose = {}
+    if dock and dock != 'MANUAL':
+        dock_table = os.environ.get('DOCK_TABLE', '/data/docks/docks.yaml')
+        with open(dock_table) as f:
+            table = (yaml.safe_load(f) or {}).get('docks') or {}
+        if dock not in table:
+            raise RuntimeError(
+                'RMF_START_DOCK=%r is not in %s (have: %s)'
+                % (dock, dock_table, ', '.join(sorted(table)) or 'none'))
+        pose = table[dock]
+        initial_pose = {
+            'set_initial_pose': True,
+            'initial_pose.x':   float(pose['x']),
+            'initial_pose.y':   float(pose['y']),
+            'initial_pose.yaw': float(pose['yaw']),
+        }
+
     # ── 5. AMCL — particle-filter localizer ────────────────────────────────
     amcl = Node(
         package='nav2_amcl',
         executable='amcl',
         name='amcl',
         output='screen',
-        parameters=[amcl_cfg])
+        # Later entries win, so the dock override lands on top of the file.
+        # Empty dict when no dock is named -- the manual path is untouched,
+        # not merely equivalent.
+        parameters=[amcl_cfg, initial_pose])
 
     # ── 6. Lifecycle manager for map_server + amcl ─────────────────────────
     # These two nodes need lifecycle management to come up correctly
