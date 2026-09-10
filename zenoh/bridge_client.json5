@@ -1,0 +1,17 @@
+// The only reason this file exists: zenoh-bridge-ros2dds v1.9.0 has no CLI
+// flag for connect-retry behaviour -- `-c <file>` is its only config override
+// (there is no --cfg). Zenoh's client-mode defaults are connect.timeout_ms 0
+// and exit_on_failure true, so the bridge gives up and exits about 10s after
+// start if the router is unreachable -- which is the normal case whenever the
+// robot boots before the server. Verified against the 1.9.0 image: without
+// these two keys the process logs "Failed to start Zenoh runtime ... Exiting";
+// with them it waits, and attaches as soon as the router appears.
+//
+// Everything else -- mode, endpoint, namespace -- stays on the command line in
+// docker-compose.yml, because those are per-robot values that come from .env.
+{
+  connect: {
+    timeout_ms: -1,
+    exit_on_failure: false,
+  },
+}
