@@ -1,0 +1,5 @@
+FROM eclipse/zenoh-bridge-ros2dds:1.9.0
+
+# Connection retry policy is release-owned configuration. Per-robot endpoint
+# and namespace values remain runtime arguments supplied by Compose.
+COPY zenoh/bridge_client.json5 /etc/zenoh/bridge_client.json5

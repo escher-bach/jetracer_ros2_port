@@ -84,13 +84,15 @@ RUN echo "source /opt/ros/humble/setup.bash" >> /root/.bashrc && \
     echo "export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp" >> /root/.bashrc && \
     echo "export ROS_DOMAIN_ID=\${ROS_DOMAIN_ID:-0}" >> /root/.bashrc
 
-# Now copy the rest of the source code
+# Now copy the rest of the source code. The segmentation package is shipped in
+# the image so a deployed robot never needs a repository checkout, but remains
+# intentionally excluded from the production build until the matching JetPack
+# CUDA/TensorRT build environment is available in CI.
 COPY src/jetracer_ros2 src/jetracer_ros2
+COPY src/jetracer_segmentation src/jetracer_segmentation
 
-# jetracer_segmentation builds in-container, not here: it links the GPU libs,
-# which are runtime mounts absent at docker build (phase 1). rosdep above
-# still bakes its apt deps; at runtime the compose dev mount shadows this dir,
-# hiding the marker from in-container colcon.
+# A development bind mount shadows this directory (and therefore this marker),
+# preserving the existing on-Jetson experimental build workflow.
 RUN touch src/jetracer_segmentation/COLCON_IGNORE
 
 # Build the workspace
@@ -100,5 +102,11 @@ RUN /bin/bash -c "source /opt/ros/humble/setup.bash && colcon build --symlink-in
 COPY entrypoint.sh /
 RUN chmod +x /entrypoint.sh
 
+# Default site configuration. Deployments may override DOCK_TABLE with a
+# platform-managed config, while the development Compose override mounts the
+# checkout's live copy at /data/docks.
+COPY docks/docks.yaml /opt/jetracer/config/docks.yaml
+ENV DOCK_TABLE=/opt/jetracer/config/docks.yaml
+
 ENTRYPOINT ["/entrypoint.sh"]
-CMD ["bash"]
+CMD ["ros2", "launch", "jetracer_ros2", "camera_slam_nav_launch.py"]

@@ -6,7 +6,7 @@ For remote visualisation, vision pipelines, and teleoperation, see the companion
 
 ---
 
-## Installation
+## Development installation
 
 Clone the repository
 ```bash
@@ -18,10 +18,34 @@ Install prerequisites by running the install script (Docker, Docker Compose)
 chmod -x install.sh
 bash install.sh
 ```
-Pull the Docker image (GHCR)
+Pull the Docker images (GHCR)
 ```bash
 docker compose pull
 ```
+
+The repository includes `docker-compose.override.yml`, which Docker Compose
+loads automatically for local development. It restores the source/config bind
+mounts and interactive shell workflow without putting those repository paths in
+the deployable Compose definition.
+
+## Standalone deployment
+
+`docker-compose.yml` is the standalone definition intended for a deployment
+system or a clean Jetson. It contains no repository-relative paths: application
+code and static configuration are in the images, while maps and model artifacts
+use Docker-managed named volumes.
+
+To exercise that definition from a checkout without loading the development
+override:
+
+```bash
+docker compose -f docker-compose.yml pull
+docker compose -f docker-compose.yml up -d
+```
+
+The standalone JetRacer service launches `camera_slam_nav_launch.py`
+automatically. Set `JETRACER_IMAGE`, `ZENOH_IMAGE`, and `JETRACER_TAG` when a
+release is hosted somewhere other than the default GHCR repositories.
 
 ---
 
@@ -33,7 +57,9 @@ docker compose pull
 docker compose up
 ```
 
-This starts `my_jetracer` (the ROS 2 stack) and `my_jetracer_zenoh` (the Zenoh bridge that exposes all topics over TCP to the remote machine).
+In a repository checkout this starts `my_jetracer` in its development shell and
+`my_jetracer_zenoh` as the Zenoh bridge. A standalone deployment starts the ROS 2
+stack automatically instead.
 
 ### Step 2 — Launch the robot stack
 

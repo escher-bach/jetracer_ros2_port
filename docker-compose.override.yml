@@ -1,0 +1,33 @@
+services:
+  jetracer:
+    # Local development keeps the existing build-and-exec workflow. This file
+    # is loaded automatically by `docker compose` from a repository checkout;
+    # deployment systems should import docker-compose.yml alone.
+    build:
+      context: .
+      dockerfile: Dockerfile
+      cache_from:
+        - ghcr.io/escher-bach/jetracer-ros2:buildcache
+    environment:
+      DOCK_TABLE: /data/docks/docks.yaml
+    volumes:
+      - ./maps/rtabmap:/data/rtabmap
+      - ./models:/data/models
+      - ./docks:/data/docks:ro
+      # This mount hides the baked COLCON_IGNORE marker, so the package can be
+      # compiled manually against the Jetson's mounted GPU development files.
+      - ./src/jetracer_segmentation:/ros2_ws/src/jetracer_segmentation
+      # Uncomment for active development of the primary ROS package, followed
+      # by an in-container colcon build.
+      # - ./src/jetracer_ros2:/ros2_ws/src/jetracer_ros2
+    command: bash
+    tty: true
+    stdin_open: true
+    restart: "no"
+
+  zenoh-bridge:
+    build:
+      context: .
+      dockerfile: Dockerfile.zenoh
+    volumes:
+      - ./zenoh/bridge_client.json5:/etc/zenoh/bridge_client.json5:ro
