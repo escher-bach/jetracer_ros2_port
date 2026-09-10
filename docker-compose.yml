@@ -93,4 +93,23 @@ services:
     environment:
       - ROS_DOMAIN_ID=${ROS_DOMAIN_ID:-0}
       - ROS_DISTRO=humble
-    command: -n ${ROBOT_NAMESPACE:-/bot1}
+    # The robot dials the router, not the other way round: only this side needs
+    # to know an address, so the remote machine no longer carries a ROBOT_IPS
+    # list and a robot on DHCP/NAT needs nothing reconfigured over there.
+    # client mode is what jetracer_fleet_rmf's zenoh config already assumes,
+    # and it also stops this bridge listening and multicast-scouting, so the
+    # old inbound path is genuinely closed rather than merely unused.
+    #
+    # Zenoh's client-mode connect defaults are timeout_ms 0 / exit_on_failure
+    # true, i.e. the bridge quits outright if the router is unreachable at
+    # startup -- the normal case when the robot boots before the server. The
+    # two --cfg overrides restore peer mode's retry-forever behaviour (1s
+    # backing off to 4s); restart covers a crash for any other reason, since a
+    # dead bridge is otherwise silent.
+    command: >
+      -n ${ROBOT_NAMESPACE:-/bot1}
+      -m client
+      -e tcp/${ROUTER_IP:?set ROUTER_IP in .env to the IP of the machine running the zenoh router}:7447
+      --cfg connect/timeout_ms:-1
+      --cfg connect/exit_on_failure:false
+    restart: unless-stopped

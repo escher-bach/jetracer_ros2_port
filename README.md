@@ -46,11 +46,21 @@ ros2 launch jetracer_ros2 camera_slam_nav_launch.py
 
 ### Step 3 — Connect the remote machine
 
-On the host laptop, follow the setup in [jetracer_remote_machine](https://github.com/escher-bach/jetracer_remote_machine) then connect:
+The robot dials the remote machine, not the other way round, so the link is
+configured entirely on this side. Set `ROUTER_IP` in `.env` to the address of
+the machine running the Zenoh router before bringing the stack up:
 
-```bash
-zenoh-bridge-ros2dds -e tcp/<jetson-ip>:7447
+```ini
+ROUTER_IP=192.168.0.10
 ```
+
+`my_jetracer_zenoh` runs in Zenoh `client` mode and retries that endpoint
+indefinitely, so the robot may boot first and pick the router up whenever it
+appears. On the host laptop, follow the setup in
+[jetracer_remote_machine](https://github.com/escher-bach/jetracer_remote_machine)
+and bring up its stack — its bridge listens as a router on `tcp/0.0.0.0:7447`
+and keeps no list of robot IPs, so adding a robot means editing only that
+robot's `.env`.
 
 ---
 
