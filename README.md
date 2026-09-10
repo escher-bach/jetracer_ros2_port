@@ -47,11 +47,11 @@ ros2 launch jetracer_ros2 camera_slam_nav_launch.py
 ### Step 3 — Connect the remote machine
 
 The robot dials the remote machine, not the other way round, so the link is
-configured entirely on this side. Set `ROUTER_IP` in `.env` to the address of
-the machine running the Zenoh router before bringing the stack up:
+configured entirely on this side. `ROUTER_IP` in `.env` is the address of the
+machine running the Zenoh router; change it if that machine moves:
 
 ```ini
-ROUTER_IP=192.168.0.10
+ROUTER_IP=192.168.0.142
 ```
 
 `my_jetracer_zenoh` runs in Zenoh `client` mode and retries that endpoint
